@@ -23,6 +23,13 @@ class HeatKernelGaussian:
         self.order = order
         self.t = t
         self.alpha = alpha if alpha % 2 == 0 else alpha + 1
+        self.dist_fn = {
+            "var": lambda x: -torch.log(x + EPS_LOG),
+            "phate": lambda x: torch.cdist(
+                -torch.log(x + EPS_LOG), -torch.log(x + EPS_LOG)
+            ),
+            "diff": lambda x: torch.cdist(x, x),
+        }
 
     def __call__(self, data: torch.Tensor):
         L = laplacian_from_data(data, self.sigma, alpha=self.alpha)
@@ -38,9 +45,10 @@ class HeatKernelGaussian:
         heat_kernel = (heat_kernel + heat_kernel.T) / 2
         return heat_kernel
 
-    def get_distances(self, data: torch.Tensor):
+    def get_distances(self, data: torch.Tensor, dist_type: str = "var"):
+        assert dist_type in self.dist_fn
         heat_kernel = self(data)
-        return -torch.log(heat_kernel + EPS_LOG)
+        return self.dist_fn[dist_type](heat_kernel)
 
 
 def laplacian_from_data(data: torch.Tensor, sigma: float, alpha: int = 20):
