@@ -1,5 +1,5 @@
 # heatdist
-Implementation of diffusion-based distance in torch.
+Implementation of diffusion-based distances in torch.
 
 ```python
 from torchheat.heat_kernel import HeatKernelGaussian
