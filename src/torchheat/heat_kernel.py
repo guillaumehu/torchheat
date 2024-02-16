@@ -3,6 +3,12 @@ import torch
 from torchheat.approx import compute_chebychev_coeff_all, expm_multiply
 
 EPS_LOG = 1e-6
+EPS_HEAT = 1e-4
+
+def var_fn(x, t):
+    outer = torch.outer(torch.diag(x), torch.ones(x.shape[0]))
+    vol_approx = (outer + outer.T) * 0.5
+    return -t*torch.log(x + EPS_LOG) + t*torch.log(vol_approx + EPS_LOG)
 
 
 class HeatKernelGaussian:
@@ -24,11 +30,11 @@ class HeatKernelGaussian:
         self.t = t
         self.alpha = alpha if alpha % 2 == 0 else alpha + 1
         self.dist_fn = {
-            "var": lambda x: -torch.log(x + EPS_LOG),
-            "phate": lambda x: torch.cdist(
+            "var": var_fn,
+            "phate": lambda x, t: torch.cdist(
                 -torch.log(x + EPS_LOG), -torch.log(x + EPS_LOG)
             ),
-            "diff": lambda x: torch.cdist(x, x),
+            "diff": lambda x, t: torch.cdist(x, x),
         }
 
     def __call__(self, data: torch.Tensor):
@@ -43,12 +49,13 @@ class HeatKernelGaussian:
         )
         # symmetrize the heat kernel, for larger t it may not be symmetric
         heat_kernel = (heat_kernel + heat_kernel.T) / 2
+        heat_kernel[heat_kernel < 0] = 0.0 + EPS_HEAT
         return heat_kernel
 
-    def get_distances(self, data: torch.Tensor, dist_type: str = "var"):
+    def fit(self, data: torch.Tensor, dist_type: str = "var"):
         assert dist_type in self.dist_fn
         heat_kernel = self(data)
-        return self.dist_fn[dist_type](heat_kernel)
+        return self.dist_fn[dist_type](heat_kernel, self.t)
 
 
 def laplacian_from_data(data: torch.Tensor, sigma: float, alpha: int = 20):
