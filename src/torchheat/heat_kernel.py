@@ -102,9 +102,9 @@ class HeatKernelKNN(BaseHeatKernel):
 
 
 def norm_sym_laplacian(A: torch.Tensor):
-    D = torch.diag(A.sum(dim=1))
-    D_sqrt_inv = torch.sqrt(torch.linalg.inv(D))
-    return D_sqrt_inv @ A @ D_sqrt_inv
+    deg = A.sum(dim=1)
+    deg_sqrt_inv = torch.diag(1.0 / torch.sqrt(deg + EPS_LOG))
+    return deg_sqrt_inv @ A @ deg_sqrt_inv
 
 
 def laplacian_from_data(data: torch.Tensor, sigma: float, alpha: int = 20):
