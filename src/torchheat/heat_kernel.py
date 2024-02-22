@@ -108,9 +108,7 @@ def norm_sym_laplacian(A: torch.Tensor):
 
 
 def laplacian_from_data(data: torch.Tensor, sigma: float, alpha: int = 20):
-    affinity = torch.exp(
-        -(torch.cdist(data, data) / (2 * sigma)).pow(alpha)
-    )
+    affinity = torch.exp(-(torch.cdist(data, data) / (2 * sigma)).pow(alpha))
     return norm_sym_laplacian(affinity)
 
 
