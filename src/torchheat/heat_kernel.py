@@ -30,7 +30,7 @@ def torch_knn_from_data(
         data = data @ V
     dist = torch.cdist(data, data)
     _, indices = torch.topk(dist, k, largest=False)
-    affinity = torch.zeros(data.shape[0], data.shape[0])
+    affinity = torch.zeros(data.shape[0], data.shape[0], device=data.device)
     affinity.scatter_(1, indices, 1)
     return norm_sym_laplacian(affinity)
 

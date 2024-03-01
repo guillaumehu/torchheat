@@ -2,6 +2,9 @@ import pytest
 import torch
 from torchheat.heat_kernel import HeatKernelGaussian, laplacian_from_data, HeatKernelKNN, torch_knn_from_data
 
+DEVICES = ["cpu"]
+if torch.cuda.is_available():
+    DEVICES.append("cuda")
 
 def gt_heat_kernel_knn(
     data,
@@ -47,8 +50,10 @@ def test_laplacian():
 
 @pytest.mark.parametrize("t", [0.1, 1.0, 10.0])
 @pytest.mark.parametrize("order", [10, 30, 50])
-def test_heat_kernel_gaussian(t, order):
+@pytest.mark.parametrize("device", DEVICES)
+def test_heat_kernel_gaussian(t, order, device):
     data = torch.randn(100, 5)
+    data = data.to(device)
     heat_op = HeatKernelGaussian(sigma=1.0, t=t, order=order, alpha=20)
     heat_kernel = heat_op(data)
 
