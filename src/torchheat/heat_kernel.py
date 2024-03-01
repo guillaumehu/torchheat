@@ -1,8 +1,52 @@
 import torch
 from torchheat.approx import compute_chebychev_coeff_all, expm_multiply
 
+try:
+    import scanpy as sc
+except ImportError:
+    pass
+
+
 EPS_LOG = 1e-6
 EPS_HEAT = 1e-4
+
+
+def norm_sym_laplacian(A: torch.Tensor):
+    deg = A.sum(dim=1)
+    deg_sqrt_inv = torch.diag(1.0 / torch.sqrt(deg + EPS_LOG))
+    return deg_sqrt_inv @ A @ deg_sqrt_inv
+
+
+def laplacian_from_data(data: torch.Tensor, sigma: float, alpha: int = 20):
+    affinity = torch.exp(-(torch.cdist(data, data) / (2 * sigma)).pow(alpha))
+    return norm_sym_laplacian(affinity)
+
+
+def torch_knn_from_data(
+    data: torch.Tensor, k: int, projection: bool = False, proj_dim: int = 100
+):
+    if projection:
+        _, _, V = torch.pca_lowrank(data, q=proj_dim, center=True)
+        data = data @ V
+    dist = torch.cdist(data, data)
+    _, indices = torch.topk(dist, k, largest=False)
+    affinity = torch.zeros(data.shape[0], data.shape[0])
+    affinity.scatter_(1, indices, 1)
+    return norm_sym_laplacian(affinity)
+
+
+def scanpy_knn_from_data(
+    data: torch.Tensor, k: int, projection: bool = False, proj_dim: int = 100
+):
+    adata = sc.AnnData(data.numpy())
+    if projection:
+        sc.pp.pca(adata, n_comps=proj_dim)
+    sc.pp.neighbors(
+        adata, n_neighbors=k, use_rep="X_pca" if projection else None
+    )
+    return norm_sym_laplacian(
+        torch.tensor(adata.obsp["connectivities"].toarray())
+    )
 
 
 def var_fn(x, t):
@@ -83,6 +127,10 @@ class HeatKernelKNN(BaseHeatKernel):
     """
 
     _is_differentiable = False
+    _implemented_graph = {
+        "torch": torch_knn_from_data,
+        "scanpy": scanpy_knn_from_data,
+    }
 
     def __init__(
         self,
@@ -91,35 +139,15 @@ class HeatKernelKNN(BaseHeatKernel):
         t: float = 1.0,
         projection: bool = False,
         proj_dim: int = 100,
+        graph_type: str = "torch",
     ):
         super().__init__(t=t, order=order)
+        assert (
+            graph_type in self._implemented_graph
+        ), f"Type must be in {self._implemented_graph}"
         self.k = k
         self.projection = projection
         self.proj_dim = proj_dim
-        self.graph_fn = lambda x: knn_from_data(
+        self.graph_fn = lambda x: self._implemented_graph[graph_type](
             x, self.k, projection=self.projection, proj_dim=self.proj_dim
         )
-
-
-def norm_sym_laplacian(A: torch.Tensor):
-    deg = A.sum(dim=1)
-    deg_sqrt_inv = torch.diag(1.0 / torch.sqrt(deg + EPS_LOG))
-    return deg_sqrt_inv @ A @ deg_sqrt_inv
-
-
-def laplacian_from_data(data: torch.Tensor, sigma: float, alpha: int = 20):
-    affinity = torch.exp(-(torch.cdist(data, data) / (2 * sigma)).pow(alpha))
-    return norm_sym_laplacian(affinity)
-
-
-def knn_from_data(
-    data: torch.Tensor, k: int, projection: bool = False, proj_dim: int = 100
-):
-    if projection:
-        _, _, V = torch.pca_lowrank(data, q=proj_dim, center=True)
-        data = data @ V
-    dist = torch.cdist(data, data)
-    _, indices = torch.topk(dist, k, largest=False)
-    affinity = torch.zeros(data.shape[0], data.shape[0])
-    affinity.scatter_(1, indices, 1)
-    return norm_sym_laplacian(affinity)

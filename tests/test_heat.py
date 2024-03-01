@@ -1,6 +1,6 @@
 import pytest
 import torch
-from torchheat.heat_kernel import HeatKernelGaussian, laplacian_from_data, HeatKernelKNN, knn_from_data
+from torchheat.heat_kernel import HeatKernelGaussian, laplacian_from_data, HeatKernelKNN, torch_knn_from_data
 
 
 def gt_heat_kernel_knn(
@@ -23,7 +23,7 @@ def gt_heat_kernel_knn(
     t,
     k,
 ):
-    L = knn_from_data(data, k=k, projection=False, proj_dim=10)
+    L = torch_knn_from_data(data, k=k, projection=False, proj_dim=10)
     # eigendecomposition
     eigvals, eigvecs = torch.linalg.eigh(L)
     # compute the heat kernel
@@ -68,7 +68,7 @@ def test_heat_kernel_gaussian(t, order):
 def test_heat_kernel_knn(t, order, k):
     tol = 2e-1 if t > 1.0 else 1e-1
     data = torch.randn(100, 5)
-    heat_op = HeatKernelKNN(k=k, t=t, order=order)
+    heat_op = HeatKernelKNN(k=k, t=t, order=order, graph_type="scanpy")
     heat_kernel = heat_op(data)
     
     # test if symmetric
