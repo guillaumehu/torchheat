@@ -15,5 +15,5 @@ heat_op = HeatKernelKNN(k=5, t=1.0)
 dist = heat_op.fit(data, dist_type="var") # ["var", "phate", "diff"]
 ```
 
-Below is an example of distance matrices from a line embedded in two dimensions. The Euclidean distance between the two sets of points highlighted in green does not reflect the true distances on the one diemnsional line.
+Below is an example of distance matrices from a line embedded in two dimensions. The Euclidean distance between the two sets of points highlighted in green does not reflect the true distances on the one dimensional line.
 ![image](https://github.com/guillaumehu/torchheat/assets/57917099/89b845a1-1625-4f36-9e8c-d3db62281e2c)
