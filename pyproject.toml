@@ -32,6 +32,9 @@ dev = [
     "pytest",
     "isort",
 ]
+sc = [
+    "scanpy",
+]
 
 [tool.setuptools]
 package-dir = {"" = "src"}
