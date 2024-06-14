@@ -84,7 +84,7 @@ class BaseHeatKernel:
             0.5 * max_eigval, self.t, self.order
         )
         heat_kernel = expm_multiply(
-            L, torch.eye(n), cheb_coeff, 0.5 * max_eigval
+            L, torch.eye(n, device=L.device), cheb_coeff, 0.5 * max_eigval
         )
         return heat_kernel
 
