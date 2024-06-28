@@ -14,7 +14,8 @@ EPS_HEAT = 1e-4
 def norm_sym_laplacian(A: torch.Tensor):
     deg = A.sum(dim=1)
     deg_sqrt_inv = torch.diag(1.0 / torch.sqrt(deg + EPS_LOG))
-    return deg_sqrt_inv @ A @ deg_sqrt_inv
+    id = torch.eye(A.shape[0], device=A.device)
+    return id - deg_sqrt_inv @ A @ deg_sqrt_inv
 
 
 def laplacian_from_data(data: torch.Tensor, sigma: float, alpha: int = 20):

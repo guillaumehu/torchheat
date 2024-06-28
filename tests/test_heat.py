@@ -6,7 +6,7 @@ DEVICES = ["cpu"]
 if torch.cuda.is_available():
     DEVICES.append("cuda")
 
-def gt_heat_kernel_knn(
+def gt_heat_kernel_gaussian(
     data,
     t,
     sigma,
@@ -64,7 +64,7 @@ def test_heat_kernel_gaussian(t, order, device):
     assert torch.all(heat_kernel >= 0)
 
     # test if the heat kernel is close to the ground truth
-    gt_heat_kernel = gt_heat_kernel_knn(data, t=t, sigma=1.0)
+    gt_heat_kernel = gt_heat_kernel_gaussian(data, t=t, sigma=1.0)
     assert torch.allclose(heat_kernel, gt_heat_kernel, atol=1e-1, rtol=1e-1)
 
 @pytest.mark.parametrize("t", [0.1, 1.0, 4.0])
